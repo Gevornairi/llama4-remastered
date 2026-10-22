@@ -1,0 +1,31 @@
+[project]
+name = "llama4-remastered"
+version = "0.1.0"
+description = "From-scratch Llama 4-style decoder (MoE, iRoPE) with modern upgrades and hand-written backward passes (MLX/NumPy)"
+readme = "README.md"
+authors = [
+    { name = "Gevorg Khondkaryan", email = "gevorg.khondkaryan@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "datasets>=5.1.0",
+    "mlx>=0.32.4",
+    "nnkit",
+    "numpy>=2.5.3",
+    "tokenizers>=0.23.3",
+]
+
+[tool.uv.sources]
+nnkit = { git = "https://github.com/Gevornairi/nnkit", tag = "v0.5.0" }
+
+[build-system]
+requires = ["uv_build>=0.12.21,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.9",
+]
+
+[tool.uv]
+package = false
