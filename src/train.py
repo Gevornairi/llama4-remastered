@@ -74,14 +74,14 @@ def validation_loss(model, loss_fn, valid, cfg, batch_size, eos, n_batches) -> f
     return float(np.mean(losses))
 
 
-def expert_imbalance(model: Llama4Model) -> float:
-    """Busiest expert's tokens over the average, averaged over layers: 1 = even, n_experts = collapsed."""
-    ratios = []
-    for block in model.blocks:
-        load = to_numpy(block.moe.load)
-        ratios.append(load.max() / max(load.mean(), 1e-9))
+def expert_loads(model: Llama4Model) -> np.ndarray:
+    """(n_layers, n_experts): tokens routed to each expert since the last update_bias()."""
+    return np.stack([to_numpy(block.moe.load) for block in model.blocks])
 
-    return float(np.mean(ratios))
+
+def expert_imbalance(loads: np.ndarray) -> float:
+    """Busiest expert's tokens over the average, averaged over layers: 1 = even, n_experts = collapsed."""
+    return float(np.mean(loads.max(axis=1) / np.maximum(loads.mean(axis=1), 1e-9)))
 
 
 def main():
@@ -190,6 +190,7 @@ def main():
 
     # running totals since the last log line
     log_t0, log_loss, log_z, log_n = time.time(), 0.0, 0.0, 0
+    log_load = np.zeros((cfg.n_layers, cfg.n_experts))
     epoch = 0  # set by every batch; the accumulation loop always runs at least once
     model.train()
     while step < args.steps:
@@ -209,6 +210,8 @@ def main():
             log_n += 1
         grad_norm = opt.step()
         step += 1
+        loads = expert_loads(model)  # read before update_bias() resets the counts
+        log_load += loads
 
         if step % args.log_every == 0:
             dt = time.time() - log_t0
@@ -218,7 +221,11 @@ def main():
                 "loss": log_loss / log_n,
                 "lr": opt.last_lr,
                 "grad_norm": grad_norm.item(),
-                "imbalance": expert_imbalance(model),  # this step's routing
+                "imbalance": expert_imbalance(loads),  # this step's routing
+                # each layer's share of tokens per expert, over the whole interval
+                "expert_share": (log_load / log_load.sum(axis=1, keepdims=True))
+                .round(4)
+                .tolist(),
                 "tokens_per_s": tokens_per_step * args.log_every / dt,
             }
             if args.z_loss:
@@ -232,7 +239,8 @@ def main():
                 flush=True,
             )
             log_t0, log_loss, log_z, log_n = time.time(), 0.0, 0.0, 0
-        model.update_bias()  # after the log line: it resets the expert load counts
+            log_load[:] = 0
+        model.update_bias()  # resets the expert load counts
 
         if step % args.eval_every == 0 or step == args.steps:
             t0 = time.time()
