@@ -443,7 +443,7 @@ dev = [
 requires-dist = [
     { name = "datasets", specifier = ">=5.1.0" },
     { name = "mlx", specifier = ">=0.32.4" },
-    { name = "nnkit", git = "https://github.com/Gevornairi/nnkit?tag=v0.5.0" },
+    { name = "nnkit", git = "https://github.com/Gevornairi/nnkit?tag=v0.7.0" },
     { name = "numpy", specifier = ">=2.5.3" },
     { name = "tokenizers", specifier = ">=0.23.3" },
 ]
@@ -651,7 +651,7 @@ wheels = [
 [[package]]
 name = "nnkit"
 version = "0.2.0"
-source = { git = "https://github.com/Gevornairi/nnkit?tag=v0.5.0#54840d21cc9109cf7121fe960ada77416c88a0f1" }
+source = { git = "https://github.com/Gevornairi/nnkit?tag=v0.7.0#3f3b48ab71bae29b75d16b8f0866806925f46c78" }
 dependencies = [
     { name = "mlx" },
     { name = "numpy" },
