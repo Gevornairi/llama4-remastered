@@ -49,6 +49,9 @@ class ModelConfig:
             raise ValueError(f"local_attn={self.local_attn!r}: 'chunked' or 'sliding'")
         if self.nope_every < 1:
             raise ValueError("nope_every must be >= 1")
+        if self.normalize_gates and self.top_k == 1:
+            # the one chosen gate is s / s = 1, so the router gets no gradient
+            raise ValueError("normalize_gates needs top_k > 1")
 
     def is_global(self, layer: int) -> bool:
         """Every nope_every-th layer (1-based) is a global NoPE layer: 3, 7, ... for 4."""
