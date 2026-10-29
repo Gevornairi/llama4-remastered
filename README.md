@@ -23,7 +23,7 @@ Every remastered change is a flag; the faithful Llama 4 configuration is the def
 
 Preliminary: 2,000 steps (16.4M tokens, 3.5% of TinyStories), one seed, 200 warmup steps, decay to a tenth of the peak learning rate.
 Validation loss is measured on the same 410k held-out tokens for every run.
-Differences under about 0.02 are likely seed noise (an estimate, not yet measured).
+A second seed moved the baseline by 0.004 (one pair of seeds, so a rough noise level only).
 
 ### Learning rate
 
@@ -44,18 +44,30 @@ Expert imbalance is the busiest expert's token share over the mean share, at the
 
 | Change | Valid loss | Δ | Params | Expert imbalance |
 | --- | --- | --- | --- | --- |
+| Muon + WSD + bias-based balancing (lr 6e-3) | 1.990 | −0.110 | 21.25M | 1.10x |
 | Muon + WSD (lr 6e-3) | 1.995 | −0.105 | 21.25M | 3.40x |
 | Muon + WSD | 2.005 | −0.095 | 21.25M | 3.41x |
 | Tied embeddings | 2.064 | −0.036 | 19.15M | 2.07x |
 | QK-norm with a learned scale, before RoPE | 2.082 | −0.018 | 21.25M | 2.36x |
+| Many small experts, top-3, normalised gates on the output | 2.091 | −0.009 | 19.68M | 1.84x |
 | Bias-based balancing | 2.096 | −0.004 | 21.25M | 1.09x |
 | Sliding-window attention | 2.096 | −0.004 | 21.25M | 2.31x |
 | Many small experts, top-3 | 2.100 | 0.000 | 19.68M | 1.79x |
+| Gates on the expert output (top-1) | 2.102 | +0.002 | 21.25M | 2.24x |
 | Baseline | 2.100 | — | 21.25M | 2.22x |
 
-The single changes add up to about −0.17, close to the full preset's −0.19.
-Muon + WSD is the largest gain, even though without balancing it routes about 85% of tokens to one of the four experts.
-Gating on the expert output still needs its own run: normalising the gates with top-1 routing makes every gate 1, so the router never trains (the configuration now rejects that combination).
+Repeated with a second seed:
+
+| | Seed 0 | Seed 1 |
+| --- | --- | --- |
+| Baseline | 2.100 | 2.096 |
+| QK-norm with a learned scale, before RoPE | 2.082 (−0.018) | 2.071 (−0.025) |
+
+Three changes clearly help: Muon + WSD, tied embeddings and QK-norm (on both seeds).
+The rest are neutral on loss at this scale; the smaller experts get there with 1.6M fewer parameters, and balancing evens out the routing.
+The single changes add up to about −0.18, close to the full preset's −0.19.
+Muon + WSD is the largest gain, even though without balancing one expert takes 94–100% of the tokens in half of the layers; adding balancing evens out the routing but lowers the loss by only 0.005.
+Where the gate is applied makes no measurable difference. Normalised gates need top-k > 1: with one chosen expert every gate is 1 and the router never trains, so the configuration rejects that combination.
 
 ## Setup
 
