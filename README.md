@@ -36,6 +36,7 @@ A second seed moved the baseline by 0.004 (one pair of seeds, so a rough noise l
 | 1e-2 | 2.238 | 1.917 |
 
 Remastered is 0.19 lower at each preset's best learning rate, with 17% fewer parameters and the same active FFN width per token.
+Over a full epoch the gap closes (see [Full epoch](#full-epoch)).
 
 ### One change at a time
 
@@ -68,6 +69,30 @@ The rest are neutral on loss at this scale; the smaller experts get there with 1
 The single changes add up to about −0.18, close to the full preset's −0.19.
 Muon + WSD is the largest gain, even though without balancing one expert takes 94–100% of the tokens in half of the layers; adding balancing evens out the routing but lowers the loss by only 0.005.
 Where the gate is applied makes no measurable difference. Normalised gates need top-k > 1: with one chosen expert every gate is 1 and the router never trains, so the configuration rejects that combination.
+
+### Full epoch
+
+Both presets trained for 56,000 steps (459M tokens, 98% of TinyStories) at their best learning rate from the sweep, with 500 warmup steps and decay to a tenth of the peak.
+Both saw the same batches in the same order.
+
+| | Llama 4 | Remastered |
+| --- | --- | --- |
+| Valid loss | 1.591 | 1.584 |
+| Params | 21.25M | 17.58M |
+| Throughput | 26.5k tokens/s | 23.8k tokens/s |
+| Busiest expert's token share, per layer | 0.34–1.00 (even: 0.25) | 0.13 (even: 0.125) |
+
+Remastered minus Llama 4 validation loss during training:
+
+| Step | 1k | 2k | 5k | 10k | 20k | 30k | 44k | 50k | 54k | 56k |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Δ | −0.19 | −0.13 | −0.05 | 0.00 | +0.06 | +0.13 | +0.27 | +0.14 | +0.05 | −0.007 |
+
+At a full epoch the presets end level: the 0.007 gap is about the size of seed noise, so the 0.19 lead at 2,000 steps reflected faster early progress, not a lower final loss.
+At a constant 6e-3, remastered's validation loss stays around 1.93–1.94 from step 15,000 until the decay starts at step 44,800, and all of the remaining gain comes during the decay.
+It was still falling by 0.03 per 1,000 steps at the end, while Llama 4 had levelled off.
+Both learning rates were tuned at 2,000 steps, so neither is necessarily the best choice for a full epoch.
+Remastered matches Llama 4 with 17% fewer parameters and evenly loaded experts (in one Llama 4 layer, one expert takes 99.8% of the tokens), at 10% lower throughput.
 
 ## Setup
 
