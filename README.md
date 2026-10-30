@@ -94,6 +94,17 @@ It was still falling by 0.03 per 1,000 steps at the end, while Llama 4 had level
 Both learning rates were tuned at 2,000 steps, so neither is necessarily the best choice for a full epoch.
 Remastered matches Llama 4 with 17% fewer parameters and evenly loaded experts (in one Llama 4 layer, one expert takes 99.8% of the tokens), at 10% lower throughput.
 
+A second remastered run decays over the last half of training (step 28,000 on) instead of the last fifth, with everything else unchanged:
+
+| Step | 28k | 35k | 44k | 50k | 54k | 56k |
+| --- | --- | --- | --- | --- | --- | --- |
+| Llama 4 | 1.815 | 1.753 | 1.663 | 1.614 | 1.594 | 1.591 |
+| Remastered, decay over the last 20% | 1.931 | 1.925 | 1.928 | 1.749 | 1.645 | 1.584 |
+| Remastered, decay over the last 50% | 1.932 | 1.817 | 1.734 | 1.668 | 1.613 | 1.582 |
+
+The longer decay leaves the plateau earlier but ends 0.002 lower, so the final loss depends on reaching the minimum learning rate, not on how long the decay takes.
+Both remastered runs were still falling at the end (by 0.018 and 0.031 over the last 1,000 steps), possibly because they end at 6e-4, twice Llama 4's final learning rate; a lower minimum is untested.
+
 ## Setup
 
 Requires Python 3.13 and [uv](https://docs.astral.sh/uv/). MLX needs Apple silicon; elsewhere, use the NumPy backend.
